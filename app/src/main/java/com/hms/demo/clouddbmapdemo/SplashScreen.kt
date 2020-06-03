@@ -1,46 +1,65 @@
 package com.hms.demo.clouddbmapdemo
 
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import com.huawei.agconnect.auth.AGConnectAuth
-import com.huawei.agconnect.config.AGConnectServicesConfig
 import com.huawei.agconnect.function.AGCFunctionException
 import com.huawei.agconnect.function.AGConnectFunction
 import com.huawei.agconnect.function.FunctionResult
 import com.huawei.hmf.tasks.OnCompleteListener
 import com.huawei.hmf.tasks.Task
-import com.huawei.hms.aaid.HmsInstanceId
+
 
 class SplashScreen : AppCompatActivity(), GetTokenAsync.OnTokenTaskListener,
-    OnCompleteListener<FunctionResult> {
+    OnCompleteListener<FunctionResult>, MyBroadcastReceiver.OnBroadcastReceivedListener {
 
     val TAG="Splash"
+    lateinit var tv:TextView
+    lateinit var br: MyBroadcastReceiver
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash_screen)
-        if(AGConnectAuth.getInstance().currentUser!=null){
+        tv=findViewById(R.id.textView2)
+        br= MyBroadcastReceiver(this)
+        br.register(this)
+        GetTokenAsync(this).execute()
+        /*if(AGConnectAuth.getInstance().currentUser!=null){
             GetTokenAsync(this).execute()
         }
         else{
             val intent= Intent(this,LoginActivity::class.java)
             startActivity(intent)
             finish()
-        }
+        }*/
 
     }
 
+    override fun onPause() {
+        super.onPause()
+        unregisterReceiver(br)
+    }
+
     override fun onToken(b: Bundle) {
+        val message= StringBuilder()
+        message.append("onToken: ")
         if(b.getInt(Constants.CODE)==Constants.ERROR){
             Log.e("GetToken","Failure")
-            finish()
+
+            //finish()
         }
         else{
             val token=b.getString(Constants.DATA)
-            cloudFunctionRegister(token!!)
+            Log.e("onToken",token)
+
+
+            //cloudFunctionRegister(token!!)
         }
+        message.append(b.getString(Constants.DATA))
+        tv.text=message.toString()
     }
 
     private fun cloudFunctionRegister(token: String) {
@@ -73,5 +92,10 @@ class SplashScreen : AppCompatActivity(), GetTokenAsync.OnTokenTaskListener,
                 // ...
             }
         }
+    }
+
+    override fun onBroadastReceived(message: String) {
+        val text="OnNewToken $message"
+        tv.text=text
     }
 }
